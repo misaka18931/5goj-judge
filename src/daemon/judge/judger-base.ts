@@ -77,6 +77,33 @@ export abstract class JudgerBase {
             const currentTask = this.testData.subtasks[subtaskIndex];
 
             const updateCurrentSubtaskScore = () => updateSubtaskScore(currentTask, currentResult);
+            console.log(subtaskIndex);
+            console.log(results);
+            // results.forEach(u => {
+            //     console.log(u.cases);
+            // });
+            // see if it works
+            if (this.testData.subtasks[subtaskIndex].depends) {
+                let skip_subtask : boolean = false;
+                for (let j = 0; j < this.testData.subtasks[subtaskIndex].depends.length; ++j) {
+                    // console.log(results[j].score, this.testData.subtasks[j].score);
+                    const to = this.testData.subtasks[subtaskIndex].depends[j];
+                    if (results[to].score != this.testData.subtasks[to].score) {
+                        skip_subtask = true;
+                        break;
+                    }
+                }
+                if (skip_subtask) {
+                    for (let j = 0; j < currentTask.cases.length; ++j) {
+                        currentResult.cases[j].status = TaskStatus.Skipped;
+                    }
+                    // currentResult.status = TaskStatus.Skipped
+                    // updateCurrentSubtaskScore();
+                    currentResult.score = 0;
+                    winston.verbose(`Subtask ${subtaskIndex}, finished`);
+                    continue;
+                }
+            }
 
             judgeTasks.push((async () => {
                 // Type minimum is skippable, run one by one
@@ -137,6 +164,8 @@ export abstract class JudgerBase {
                 updateCurrentSubtaskScore();
                 winston.verbose(`Subtask ${subtaskIndex}, finished`);
             })());
+
+              await Promise.all(judgeTasks);
         }
         await Promise.all(judgeTasks);
         return { subtasks: results };

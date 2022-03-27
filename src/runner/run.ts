@@ -81,8 +81,11 @@ export async function runProgram(language: Language,
 
         let ole = false;
         const outputSize = await getSize(dataDir);
+	//console.log(outputSize);
         if (outputSize > Cfg.outputLimit) {
             await emptyDir(dataDir);
+	    //console.log(dataDir);
+	    //process.abort()
             ole = true;
         }
 

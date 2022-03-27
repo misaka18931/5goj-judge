@@ -11,6 +11,7 @@ export interface UserSubtask {
     score: number;
     type: string;
     cases: (string | number)[];
+    depends: number[];
 }
 
 export interface UserConfigFile {
@@ -59,6 +60,19 @@ async function parseYamlContent(obj: UserConfigFile, dataName: string): Promise<
             }
         }
     }
+    if (obj.subtasks) {
+        for (let i = 0; i < obj.subtasks.length; ++i) {
+            if (obj.subtasks[i].depends) {
+                obj.subtasks[i].depends.sort();
+                obj.subtasks[i].depends = [...new Set(obj.subtasks[i].depends)];
+                for (let j = 0; j < obj.subtasks[i].depends.length; ++j) {
+                    --obj.subtasks[i].depends[j];
+                }
+                if (obj.subtasks[i].depends[0] < 0 ||  obj.subtasks[i].depends[ obj.subtasks[i].depends.length - 1] >= i)
+                    obj.subtasks[i].depends = null;
+            }
+        }
+    }
     return {
         subtasks: obj.subtasks.map(s => ({
             score: s.score,
@@ -68,7 +82,8 @@ async function parseYamlContent(obj: UserConfigFile, dataName: string): Promise<
                 output: obj.outputFile ? filterPath(obj.outputFile.replace('#', c.toString())) : null,
                 userOutputFile: obj.userOutput ? filterPath(obj.userOutput.replace('#', c.toString())) : null,
                 name: c.toString()
-            }))
+            })),
+            depends: s.depends
         })),
         spj: obj.specialJudge && await parseExecutable(obj.specialJudge, dataPath),
         extraSourceFiles: extraFiles,
@@ -133,7 +148,8 @@ export async function readRulesFile(dataName: string): Promise<TestData> {
             subtasks: [{
                 score: 100,
                 type: SubtaskScoringType.Summation,
-                cases: cases
+                cases: cases,
+                depends: null
             }],
             spj: spj,
             name: dataName,
